@@ -136,7 +136,7 @@ def main():
             if stored_game:
                 st.session_state.game = stored_game
     
-    # Auto-refresh the page every 2 seconds
+    # Keep auto-refresh for all phases
     count = st_autorefresh(interval=2000, key="game_refresh")
     sync_game_state()
     
@@ -347,7 +347,14 @@ def main():
             
             if game.is_player_imposter(st.session_state.player_name):
                 st.write("Choose the item you think everyone else was discussing:")
-                options = game.get_guess_options()
+                
+                # Store options and their order in session state to keep them stable
+                if 'imposter_options' not in st.session_state:
+                    st.session_state.imposter_options = game.get_guess_options()
+                    # Create a fixed order for the options
+                    st.session_state.options_order = list(range(len(st.session_state.imposter_options)))
+                
+                options = st.session_state.imposter_options
                 
                 # Create a container for the grid
                 grid = st.container()
@@ -357,13 +364,13 @@ def main():
                 num_options = len(options)
                 num_rows = (num_options + num_cols - 1) // num_cols
                 
-                # Create the grid
+                # Create the grid using the fixed order
                 for row in range(num_rows):
                     cols = st.columns(num_cols)
                     for col in range(num_cols):
                         idx = row * num_cols + col
                         if idx < num_options:
-                            option = options[idx]
+                            option = options[st.session_state.options_order[idx]]
                             with cols[col]:
                                 image_path = f"item_images/{option.lower().replace(' ', '_')}.png"
                                 if os.path.exists(image_path):
@@ -376,6 +383,11 @@ def main():
                                         st.success("🎯 You got it! +100 points")
                                     else:
                                         st.error(f"❌ Wrong! The correct item was: {game.current_item}")
+                                    # Clear the options from session state when done
+                                    if 'imposter_options' in st.session_state:
+                                        del st.session_state.imposter_options
+                                    if 'options_order' in st.session_state:
+                                        del st.session_state.options_order
                                     game.show_scores()
                                     save_game_state(game)
                                     st.rerun()
