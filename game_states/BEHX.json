@@ -1,0 +1,1 @@
+{"room_code": "BEHX", "phase": "round_setup", "players": [{"name": "Randi", "is_host": true, "score": 0}, {"name": "Test", "is_host": false, "score": 0}, {"name": "aaaa", "is_host": false, "score": 0}], "min_players": 2, "current_domain": null, "current_item": null, "imposter": null, "discussion_end_time": null, "votes": {}, "most_voted_player": null}
