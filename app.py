@@ -170,41 +170,44 @@ def main():
     else:
         game = st.session_state.game
         
-        # Create two columns - main game area and scoreboard
-        main_col, score_col = st.columns([7, 3])
+        # Create three columns - game info, main game area, and scoreboard
+        info_col, main_col, score_col = st.columns([2, 5, 2])
+        
+        with info_col:
+            # Game information in left column
+            st.markdown("## ℹ️ Game Info / معلومات اللعبة")
+            st.write(f"### 🎯 رمز الغرفة: {game.room_code}")
+            st.write(f"### 👥 Players / اللاعبين: {len(game.players)}")
+            if game.current_domain:
+                st.write(f"### 🌍 المجال: {game.current_domain}")
+            st.divider()
         
         with score_col:
-            # Scoreboard in right column
-            st.subheader("🏆 Scoreboard / النتائج")
-            
-            # Room info at the top of scoreboard
-            st.write(f"Room Code / رمز الغرفة: {game.room_code}")
-            st.write(f"Players / اللاعبين: {len(game.players)}")
-            if game.current_domain:
-                st.write(f"Domain / المجال: {game.current_domain}")
-            st.divider()
+            # Scoreboard in right column with improved styling
+            st.markdown("## 🏆 Scoreboard / النتائج")
             
             # Sort players by score in descending order
             sorted_players = sorted(game.players, key=lambda x: x.score, reverse=True)
             
-            # Show your score prominently
-            for player in sorted_players:
-                if player.name == st.session_state.player_name:
-                    st.markdown(f"**You / أنت:** {player.score} نقطة")
-                else:
-                    st.write(f"{player.name}: {player.score} نقطة")
+            # Show your score prominently with custom styling
+            for i, player in enumerate(sorted_players):
+                rank_emoji = ["🥇", "🥈", "🥉"][i] if i < 3 else "•"
+                st.markdown(f"#### {rank_emoji} {player.name} : {player.score} ")
         
         with main_col:
             # Game phases
             if game.phase == "lobby":
                 st.subheader("Lobby / الغرفة")
                 st.divider()
-                st.write("Players in the room / اللاعبون في الغرفة:")
+                st.markdown("### 👥 Players / اللاعبون في الغرفة")
                 for player in game.players:
-                    st.write(f"- {player.name} {'(Host / المضيف)' if player.is_host else ''}")
+                    if player.name == st.session_state.player_name:
+                        st.markdown(f"## 👤 {player.name} {' 👑' if player.is_host else ''}")
+                    else:
+                        st.markdown(f"## {player.name} {' 👑' if player.is_host else ''}")
                 
-                # Show lobby status
-                st.write(f"Number of players / عدد اللاعبين: {len(game.players)} (Minimum needed / الحد الأدنى المطلوب: {game.min_players})")
+                # Show lobby status with larger numbers
+                st.markdown(f"### Players / اللاعبين: {len(game.players)}/{game.min_players}")
                 
                 # Host controls
                 if game.is_player_host(st.session_state.player_name):
@@ -266,19 +269,26 @@ def main():
                 st.info("💭 Waiting for the host to select a domain...")
         
         elif game.phase == "discussion":
-            st.subheader("Discussion Phase")
+            st.markdown("### 💬 Discussion Phase / مرحلة النقاش")
             
-            # Display role and item
-            player_role = "Imposter!" if game.is_player_imposter(st.session_state.player_name) else f"Regular Player (Item: {game.current_item})"
-            st.info(f"You are the {player_role}")
+            # Create two columns for role and timer
+            role_col, timer_col = st.columns([2, 1])
             
-            # Chat/Discussion area
-            st.write("Use this time to ask questions and discuss!")
+            with role_col:
+                # Display role and item with improved styling
+                if game.is_player_imposter(st.session_state.player_name):
+                    st.error("🎭 You are the Imposter! / أنت برّه السالفة!")
+                else:
+                    st.success(f"✨ Regular Player / لاعب عادي\n### Item / العنصر: {game.current_item}")
             
-            # Timer
-            time_left = max(0, game.discussion_end_time - time.time())
-            st.progress(time_left / game.discussion_duration)
-            st.write(f"Time remaining: {int(time_left)} seconds")
+            with timer_col:
+                # Timer with improved visualization
+                time_left = max(0, game.discussion_end_time - time.time())
+                st.markdown("#### ⏱️ Time / الوقت")
+                st.progress(time_left / game.discussion_duration)
+                minutes = int(time_left // 60)
+                seconds = int(time_left % 60)
+                st.markdown(f"**{minutes:02d}:{seconds:02d}** remaining / متبقي")
             
             if game.is_player_host(st.session_state.player_name):
                 if st.button("End Discussion & Open Voting"):
@@ -287,22 +297,32 @@ def main():
                     st.rerun()
         
         elif game.phase == "voting":
-            st.subheader("Voting Phase")
+            st.markdown("### 🗳️ Voting Phase / مرحلة التصويت")
             
-            if not game.has_player_voted(st.session_state.player_name):
-                st.write("Who do you think is the Imposter? Choose carefully!")
-                st.warning("Remember: You'll get 100 points if you guess correctly!")
-                
-                for player in game.players:
-                    if player.name != st.session_state.player_name:
-                        if st.button(f"Vote for {player.name}"):
-                            game.submit_vote(st.session_state.player_name, player.name)
-                            save_game_state(game)
-                            st.rerun()
-            else:
-                your_vote = game.votes.get(st.session_state.player_name)
-                st.info(f"You voted for: {your_vote}")
-                st.write("Waiting for other players to vote...")
+            vote_area, status_area = st.columns([3, 2])
+            
+            with vote_area:
+                if not game.has_player_voted(st.session_state.player_name):
+                    st.markdown("#### 🤔 Who is the Imposter? / من هو برّه السالفة؟")
+                    st.warning("🎯 +100 points for correct guess! / +100 نقطة للتخمين الصحيح!")
+                    
+                    # Create a grid of vote buttons
+                    player_chunks = [game.players[i:i+2] for i in range(0, len(game.players), 2)]
+                    for chunk in player_chunks:
+                        cols = st.columns(2)
+                        for i, player in enumerate(chunk):
+                            if player.name != st.session_state.player_name:
+                                with cols[i]:
+                                    if st.button(f"👤 Vote {player.name}", 
+                                               key=f"vote_{player.name}",
+                                               use_container_width=True):
+                                        game.submit_vote(st.session_state.player_name, player.name)
+                                        save_game_state(game)
+                                        st.rerun()
+                else:
+                    your_vote = game.votes.get(st.session_state.player_name)
+                    st.success(f"✅ You voted for: {your_vote} / لقد صوت ل")
+                    st.info("⌛ Waiting for others... / بانتظار الآخرين...")
             
             total_votes = len(game.votes)
             total_players = len(game.players)
@@ -343,10 +363,11 @@ def main():
                     st.rerun()
         
         elif game.phase == "imposter_guess":
-            st.subheader("Imposter's Guess")
+            st.markdown("### 🎯 Imposter's Guess / تخمين برّه السالفة")
             
             if game.is_player_imposter(st.session_state.player_name):
-                st.write("Choose the item you think everyone else was discussing:")
+                st.markdown("#### 🤔 What was everyone discussing? / ماذا كان الجميع يناقشون؟")
+                st.info("Choose carefully - you get 100 points for a correct guess! / اختر بعناية - تحصل على 100 نقطة للتخمين الصحيح!")
                 
                 # Store options and their order in session state to keep them stable
                 if 'imposter_options' not in st.session_state:
