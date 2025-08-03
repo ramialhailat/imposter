@@ -349,21 +349,36 @@ def main():
                 st.write("Choose the item you think everyone else was discussing:")
                 options = game.get_guess_options()
                 
-                for option in options:
-                    image_path = f"item_images/{option.lower().replace(' ', '_')}.png"
-                    if os.path.exists(image_path):
-                        st.image(image_path, caption=option, width=200)
-                    
-                    if st.button(f"{option}", key=f"guess_{option}"):
-                        game.submit_imposter_guess(option)
-                        game.imposter_guess = option  # Explicitly set the guess
-                        if option == game.current_item:
-                            st.success("🎯 You got it! +100 points")
-                        else:
-                            st.error(f"❌ Wrong! The correct item was: {game.current_item}")
-                        game.show_scores()
-                        save_game_state(game)
-                        st.rerun()
+                # Create a container for the grid
+                grid = st.container()
+                
+                # Calculate number of columns (3 items per row)
+                num_cols = 3
+                num_options = len(options)
+                num_rows = (num_options + num_cols - 1) // num_cols
+                
+                # Create the grid
+                for row in range(num_rows):
+                    cols = st.columns(num_cols)
+                    for col in range(num_cols):
+                        idx = row * num_cols + col
+                        if idx < num_options:
+                            option = options[idx]
+                            with cols[col]:
+                                image_path = f"item_images/{option.lower().replace(' ', '_')}.png"
+                                if os.path.exists(image_path):
+                                    st.image(image_path, caption=option, width=200)
+                                
+                                if st.button(f"{option}", key=f"guess_{option}", use_container_width=True):
+                                    game.submit_imposter_guess(option)
+                                    game.imposter_guess = option  # Explicitly set the guess
+                                    if option == game.current_item:
+                                        st.success("🎯 You got it! +100 points")
+                                    else:
+                                        st.error(f"❌ Wrong! The correct item was: {game.current_item}")
+                                    game.show_scores()
+                                    save_game_state(game)
+                                    st.rerun()
             else:
                 st.write("Waiting for the Imposter to make their guess...")
                 st.info(f"The item was: {game.current_item}")
